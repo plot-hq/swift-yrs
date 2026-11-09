@@ -200,6 +200,9 @@ fn any_from_json(value: serde_json::Value) -> Any {
     }
 }
 
+// Plot: natural JSON (marks, XML attributes, deltas) uses `plain_any_from_json`, so a
+// JSON integer is stored as a lib0 number, as y-prosemirror stores it. Upstream
+// stored it as a BigInt, which Yjs reads back as a JavaScript BigInt.
 fn attrs_from_json(attrs_json: *const c_char) -> Result<Attrs, i32> {
     if attrs_json.is_null() {
         return Ok(Attrs::new());
@@ -211,7 +214,7 @@ fn attrs_from_json(attrs_json: *const c_char) -> Result<Attrs, i32> {
     match value {
         serde_json::Value::Object(values) => Ok(values
             .into_iter()
-            .map(|(key, value)| (Arc::<str>::from(key), any_from_json(value)))
+            .map(|(key, value)| (Arc::<str>::from(key), plain_any_from_json(value)))
             .collect()),
         _ => Err(YRS_BRIDGE_ERR_TYPE_MISMATCH),
     }
@@ -1311,7 +1314,7 @@ pub unsafe extern "C" fn yrs_bridge_text_apply_delta_json(
                             values
                                 .iter()
                                 .map(|(key, value)| {
-                                    (Arc::<str>::from(key.as_str()), any_from_json(value.clone()))
+                                    (Arc::<str>::from(key.as_str()), plain_any_from_json(value.clone()))
                                 })
                                 .collect(),
                         ))
@@ -1332,7 +1335,7 @@ pub unsafe extern "C" fn yrs_bridge_text_apply_delta_json(
                             values
                                 .iter()
                                 .map(|(key, value)| {
-                                    (Arc::<str>::from(key.as_str()), any_from_json(value.clone()))
+                                    (Arc::<str>::from(key.as_str()), plain_any_from_json(value.clone()))
                                 })
                                 .collect(),
                         ))
@@ -1980,7 +1983,7 @@ pub unsafe extern "C" fn yrs_bridge_xml_set_attribute_json(
             Ok(value) => value,
             Err(_) => return YRS_BRIDGE_ERR_DECODE,
         };
-        let input = In::Any(any_from_json(value));
+        let input = In::Any(plain_any_from_json(value));
         let Some(transaction) = (*transaction).as_write_mut() else {
             return YRS_BRIDGE_ERR_READ_ONLY_TRANSACTION;
         };
@@ -2241,7 +2244,7 @@ pub unsafe extern "C" fn yrs_bridge_xml_text_apply_delta_json(
                             values
                                 .iter()
                                 .map(|(key, value)| {
-                                    (Arc::<str>::from(key.as_str()), any_from_json(value.clone()))
+                                    (Arc::<str>::from(key.as_str()), plain_any_from_json(value.clone()))
                                 })
                                 .collect(),
                         ))
@@ -2262,7 +2265,7 @@ pub unsafe extern "C" fn yrs_bridge_xml_text_apply_delta_json(
                             values
                                 .iter()
                                 .map(|(key, value)| {
-                                    (Arc::<str>::from(key.as_str()), any_from_json(value.clone()))
+                                    (Arc::<str>::from(key.as_str()), plain_any_from_json(value.clone()))
                                 })
                                 .collect(),
                         ))

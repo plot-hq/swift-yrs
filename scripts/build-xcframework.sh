@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Plot: rustup installs cargo here; CocoaPods runs this script without a login shell.
+export PATH="$HOME/.cargo/bin:$PATH"
+command -v cargo >/dev/null || { echo "SwiftYrs needs Rust: curl -sSf https://sh.rustup.rs | sh, then rustup target add aarch64-apple-darwin aarch64-apple-ios aarch64-apple-ios-sim" >&2; exit 1; }
+
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CRATE_DIR="$ROOT_DIR/native/yrs-bridge"
 ARTIFACTS_DIR="$ROOT_DIR/Artifacts"
