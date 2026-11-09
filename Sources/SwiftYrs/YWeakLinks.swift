@@ -192,6 +192,20 @@ extension YWriteTransaction {
         return YRelativePosition(data: data, json: json)
     }
 
+    /// A relative position anchored to a `YXmlText` itself. With `.after` it
+    /// is the end of the text, as Yjs's `createRelativePositionFromTypeIndex`
+    /// makes it for an index at the end, where yrs has no character to stick
+    /// to.
+    public func relativePosition(anchoredTo text: YXmlText, association: YAssociation) throws -> YRelativePosition {
+        let json = try readingBuffer {
+            yrs_bridge_type_relative_position_json(text.handle, handle, association.rawValue, &$0)
+        }
+        let data = try readingBuffer {
+            yrs_bridge_type_relative_position_v1(text.handle, handle, association.rawValue, &$0)
+        }
+        return YRelativePosition(data: data, json: json)
+    }
+
     private func relativePosition(inTextBranch branch: OpaquePointer, at index: UInt32, association: YAssociation) throws -> YRelativePosition {
         let json = try readingBuffer {
             yrs_bridge_text_relative_position_json(branch, handle, index, association.rawValue, &$0)

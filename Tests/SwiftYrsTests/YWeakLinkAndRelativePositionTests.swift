@@ -292,6 +292,32 @@ func elementAnchoredRelativePositionsResolveToTheElement() throws {
 }
 
 @Test
+func textAnchoredRelativePositionsResolveToTheEndOfTheText() throws {
+    // A caret at the end of a text node has no character after it to stick
+    // to; Yjs's createRelativePositionFromTypeIndex anchors it to the text
+    // type itself, so text typed at the end stays before the caret.
+    let doc = YDoc()
+    let fragment = try doc.xmlFragment(named: "prosemirror")
+
+    let (textNode, position) = try doc.write { transaction -> (YXmlText, YRelativePosition) in
+        let paragraph = try transaction.insertElement(named: "paragraph", into: fragment, at: 0)
+        let textNode = try transaction.insertText(into: paragraph, at: 0)
+        try transaction.insert("hello", into: textNode, at: 0)
+        return (textNode, try transaction.relativePosition(anchoredTo: textNode, association: .after))
+    }
+
+    try doc.write { transaction in
+        try transaction.insert(" world", into: textNode, at: 5)
+    }
+
+    try doc.read { transaction in
+        let resolved = try transaction.resolve(position)
+        #expect(resolved.node == .xmlText(textNode))
+        #expect(resolved.offset == 11)
+    }
+}
+
+@Test
 func relativePositionOffsetsUseUTF16CodeUnits() throws {
     // Yjs counts text offsets in UTF-16 code units. "\u{2019}" is one UTF-16
     // unit but three UTF-8 bytes; under yrs's default byte offsets a position
