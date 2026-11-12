@@ -113,6 +113,7 @@ public actor HocuspocusProvider {
     private let initialDelay: Duration
     private let maxDelay: Duration
     private let webSocketFactory: @Sendable (URL) -> any HocuspocusWebSocket
+    private let willApplyRemoteUpdate: (@Sendable (YUpdate) -> Void)?
     private let testHooks: TestHooks
     private let connectionStatusContinuation: AsyncStream<ConnectionStatus>.Continuation
     private let isSyncedContinuation: AsyncStream<Bool>.Continuation
@@ -145,6 +146,9 @@ public actor HocuspocusProvider {
     /// disconnect or destroy.
     private struct StaleConnection: Error {}
 
+    /// `willApplyRemoteUpdate` receives each document update from the server
+    /// on the provider's actor, just before it is applied, as the server sent
+    /// it. A retried apply passes the same update again.
     public init(
         url: URL,
         name: String,
@@ -154,7 +158,8 @@ public actor HocuspocusProvider {
         maxRetries: Int = .max,
         initialDelay: Duration = .seconds(1),
         maxDelay: Duration = .seconds(30),
-        maximumMessageSize: Int = HocuspocusProvider.defaultMaximumMessageSize
+        maximumMessageSize: Int = HocuspocusProvider.defaultMaximumMessageSize,
+        willApplyRemoteUpdate: (@Sendable (YUpdate) -> Void)? = nil
     ) {
         self.init(
             url: url,
@@ -165,6 +170,7 @@ public actor HocuspocusProvider {
             maxRetries: maxRetries,
             initialDelay: initialDelay,
             maxDelay: maxDelay,
+            willApplyRemoteUpdate: willApplyRemoteUpdate,
             webSocketFactory: { url in
                 URLSessionHocuspocusWebSocket(url: url, maximumMessageSize: maximumMessageSize)
             }
@@ -183,6 +189,7 @@ public actor HocuspocusProvider {
         testHooks: TestHooks = .none,
         outboundCapacity: Int = HocuspocusProvider.defaultOutboundCapacity,
         teardownDeadline: Duration = HocuspocusProvider.defaultTeardownDeadline,
+        willApplyRemoteUpdate: (@Sendable (YUpdate) -> Void)? = nil,
         webSocketFactory: @escaping @Sendable (URL) -> any HocuspocusWebSocket
     ) {
         self.url = url
@@ -197,6 +204,7 @@ public actor HocuspocusProvider {
         self.outboundCapacity = outboundCapacity
         self.teardownDeadline = teardownDeadline
         self.webSocketFactory = webSocketFactory
+        self.willApplyRemoteUpdate = willApplyRemoteUpdate
 
         let connectionStatusPair = AsyncStream.makeStream(of: ConnectionStatus.self)
         self.connectionStatus = connectionStatusPair.stream
@@ -713,7 +721,11 @@ public actor HocuspocusProvider {
             doc: document,
             awareness: awareness,
             send: send,
-            applyUpdate: { [document, documentObservationGate] update in
+            applyUpdate: { [document, documentObservationGate, willApplyRemoteUpdate] update in
+                // The update as the server sent it. The document's own update
+                // event can differ: content inserted into a branch this client
+                // deleted is deleted again as it integrates.
+                willApplyRemoteUpdate?(update)
                 try documentObservationGate.withApplyingRemote {
                     try document.write(origin: "SwiftYrsHocuspocus") { transaction in
                         try transaction.apply(update)

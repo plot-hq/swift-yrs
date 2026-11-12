@@ -2239,3 +2239,43 @@ private func finishedStatuses(_ provider: HocuspocusProvider) async -> [Connecti
 private func nextQueuedFrame(_ stream: AsyncStream<Data>, matching frame: Data) async throws {
     while try await nextTestEvent(stream) != frame {}
 }
+
+@Test
+func providerPassesTheServerUpdateBeforeApplyingIt() async throws {
+    let serverDocument = YDoc(clientID: 1)
+    let serverText = try serverDocument.text(named: "body")
+    try serverDocument.write { transaction in
+        try transaction.insert("hello", into: serverText, at: 0)
+    }
+    let clientDocument = YDoc(clientID: 2)
+    let clientText = try clientDocument.text(named: "body")
+    let socket = FakeHocuspocusWebSocket()
+    let received = LockedUpdates()
+    let provider = HocuspocusProvider(
+        url: URL(string: "wss://example.com/collaboration")!,
+        name: "room-1",
+        document: clientDocument,
+        willApplyRemoteUpdate: { update in received.append(update) },
+        webSocketFactory: { _ in socket }
+    )
+    var syncIterator = provider.isSynced.makeAsyncIterator()
+    try await provider.connect()
+    _ = try await socket.requireSentMessage()
+    _ = try await socket.requireSentMessage()
+
+    let update = try serverDocument.encodeStateAsUpdateV1(from: clientDocument.stateVector())
+    socket.receive(HocuspocusMessage.sync(documentName: "room-1", try YSyncMessage.syncStep2(update)).encoded())
+    #expect(await syncIterator.next() == true)
+    #expect(received.updates == [update])
+    try clientDocument.read { transaction in
+        try #expect(transaction.string(from: clientText) == "hello")
+    }
+    await provider.disconnect()
+}
+
+private final class LockedUpdates: @unchecked Sendable {
+    private let lock = NSLock()
+    private var stored: [YUpdate] = []
+    func append(_ update: YUpdate) { lock.withLock { stored.append(update) } }
+    var updates: [YUpdate] { lock.withLock { stored } }
+}
