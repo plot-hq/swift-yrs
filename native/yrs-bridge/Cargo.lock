@@ -448,8 +448,8 @@ checksum = "1ebf944e87a7c253233ad6766e082e3cd714b5d03812acc24c318f549614536e"
 
 [[package]]
 name = "yrs"
-version = "0.27.0"
-source = "git+https://github.com/y-crdt/y-crdt#ae61429251af410f82e85b8c6577cad585b3585a"
+version = "0.27.3"
+source = "git+https://github.com/plot-hq/y-crdt?rev=63df73d0add1b6aa4b51971e1c5e687593f3b413#63df73d0add1b6aa4b51971e1c5e687593f3b413"
 dependencies = [
  "arc-swap",
  "async-lock",

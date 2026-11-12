@@ -10,6 +10,6 @@ crate-type = ["staticlib"]
 name = "yrs_bridge"
 
 [dependencies]
-yrs = { git = "https://github.com/y-crdt/y-crdt", features = ["weak"] }
+yrs = { git = "https://github.com/plot-hq/y-crdt", rev = "63df73d0add1b6aa4b51971e1c5e687593f3b413", features = ["weak"] }
 serde_json = "1.0"
 uuid = "1"

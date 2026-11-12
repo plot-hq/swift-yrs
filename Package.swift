@@ -32,8 +32,8 @@ let ffiTarget: Target = useLocalArtifact
     ? .binaryTarget(name: "YrsBridgeFFI", path: "Artifacts/YrsBridge.xcframework")
     : .binaryTarget(
         name: "YrsBridgeFFI",
-        url: "https://github.com/plot-hq/swift-yrs/releases/download/v0.8.0-plot.1/YrsBridge.xcframework.zip",
-        checksum: "f678734c69f49bbecf99fe5cd55032bb89d843cec06e7cf09db097756efe33b9"
+        url: "https://github.com/plot-hq/swift-yrs/releases/download/v0.8.0-plot.3/YrsBridge.xcframework.zip",
+        checksum: "96b76374c4c337fd8417f75a6e85870c5679154324f19b2fec744f33dc265a25"
     )
 
 let hocuspocusProducts: [Product] = [
